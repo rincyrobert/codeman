@@ -7,6 +7,7 @@ const leaderboardSchema = new Schema({
         ref: 'problem',
         required: true,
         index: true,
+        unique: true,
     },
     time: {
         type: String,

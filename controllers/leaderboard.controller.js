@@ -20,15 +20,28 @@ router.get('/getbyproblem/:problemId', async (req, res) => {
 router.post('/getbyproblem/:problemId', async (req, res) => {
     try {
         const problemId = req.params.problemId;
+        const userId = req.params.userId;
         const frontEndTime = req.body.newtime;
         const LeaderData = await LeaderBoard.findOne({problem: problemId}).lean().exec();
         if (!LeaderData) {
-            return res.status(505).json({success: false, msg: 'Document not found'});
+            const data = await LeaderBoard.create({
+                    problem: problemId,
+                    author: userId,
+                    time: frontEndTime,
+                }, {
+                    timestamps: true
+                }
+            );
+            return res.status(200).json(data);
         }
         if (frontEndTime < LeaderData.time) {
-            // update user and time in leaderBoard data for this problem
-            // hint: you need to get userId like we did for  frontEndTime
-            // use .updateOne function from mongoose
+            const data = await LeaderBoard.updateOne({problem: problemId}, {
+                $set: {
+                    author: userId,
+                    time: frontEndTime
+                }
+            });
+            return res.status(200).json(data);
         } else {
             return res.status(200).json({success: false, msg: 'time is not best time'});
         }
