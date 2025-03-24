@@ -861,3 +861,10 @@ a.btn:hover {
     padding:10px;
 
 }
+/* Add this to your CSS file */
+.editor-container {
+    height: 400px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    overflow: hidden;
+  }

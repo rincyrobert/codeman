@@ -58,6 +58,7 @@ const state = {
   editor: null
 };
 
+
 async function getProblems() {
   const response = await fetch('http://localhost:3003/problems/get/all', {
     method: 'GET',
@@ -81,26 +82,41 @@ async function getProblems() {
 getProblems();
 
 function navigateTo(page, params = {}) {
-    state.currentPage = page;
-    localStorage.setItem('currentPage', page); // Store the current page in localStorage
-  
-    if (page === 'challenge' && params.id) {
-      const challenge = state.challenges.find(c => c._id === params.id);
-      if (challenge) {
-        state.currentChallenge = challenge;
-        state.timeLeft = challenge.timeLimit * 60;
-        state.testResults = [];
-      }
+  // Update the current page in the state and localStorage
+  state.currentPage = page;
+  localStorage.setItem('currentPage', page);
+
+  // Handle specific logic for the "challenge" page
+  if (page === 'challenge' && params.id) {
+    const challenge = state.challenges.find(c => c._id === params.id);
+    if (challenge) {
+      state.currentChallenge = challenge;
+      state.timeLeft = challenge.timeLimit * 60; // Set the timer
+      state.testResults = []; // Reset test results
     }
-    if (page !== 'index') {
-      document.body.classList.remove('index-page');
-      document.body.classList.add('other-page'); // Add other page class if needed
-    }
-  
-    App();
-    // Scroll to top
-    window.scrollTo(0, 0);
   }
+
+  // Render the page
+  App();
+
+  // Initialize the editor and start the timer after rendering the "challenge" page
+  if (page === 'challenge' && state.currentChallenge) {
+    initializeEditor(); // Initialize the Monaco Editor
+    startTimer(); // Start the timer
+  }
+
+  // Update the body class for styling purposes
+  if (page !== 'index') {
+    document.body.classList.remove('index-page');
+    document.body.classList.add('other-page');
+  } else {
+    document.body.classList.add('index-page');
+    document.body.classList.remove('other-page');
+  }
+
+  // Scroll to the top of the page
+  window.scrollTo(0, 0);
+}
 
 // Check Authentication
 function checkAuth() {
@@ -239,33 +255,39 @@ function updateTimer() {
   }
 }
 
-function runTests() {
-  if (!state.currentChallenge) return;
-  
-  const code = state.editor ? state.editor.getValue() : '';
-  
-  // Simulate test results (in a real app, this would execute the code)
-  const results = state.currentChallenge.testCases.map((testCase, index) => {
-    // 70% chance of success for demo purposes
-    const success = Math.random() > 0.3;
-    return {
-      testCase,
-      passed: success,
-      output: success ? testCase.expectedOutput : `Expected ${testCase.expectedOutput}, got something else`,
-      error: success ? null : 'Execution error'
-    };
-  });
-  
-  state.testResults = results;
-  const allPassed = results.every(result => result.passed);
-  
-  if (allPassed) {
-    showToast('All tests passed!', 'success');
-  } else {
-    showToast('Some tests failed. Check the results.', 'error');
+async function runTests() {
+  if (!state.currentChallenge || !state.editor) return;
+
+  const code = state.editor.getValue(); // Get the code from Monaco Editor
+
+  try {
+    const response = await fetch('http://localhost:3003/run-tests', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        code,
+        testCases: state.currentChallenge.testCases,
+      }),
+    });
+
+    const result = await response.json();
+    state.testResults = result.testResults || [];
+
+    const allPassed = state.testResults.every(test => test.passed);
+
+    if (allPassed) {
+      showToast('All tests passed!', 'success');
+    } else {
+      showToast('Some tests failed. Check the results.', 'error');
+    }
+
+    TestResults();
+  } catch (error) {
+    console.error('Error running tests:', error);
+    showToast('An error occurred while running tests.', 'error');
   }
-  
-  TestResults();
 }
 
 function submitSolution() {
@@ -502,69 +524,6 @@ function HomePage() {
   return homePage;
 }
 
-function ChallengesPage() {
-  const challengesPage = document.createElement('div');
-  challengesPage.className = 'container py-8 fade-in';
-  
-  challengesPage.innerHTML = `
-    <div class="text-center mb-12">
-      <h1 class="text-3xl font-bold mb-2">Python Challenges</h1>
-      <p class="text-gray-400">Select a challenge to test your skills</p>
-    </div>
-
-    <div class="max-w-4xl mx-auto">
-      <div class="bt-container">
-        <div class="bt ${state.currentFilter === 'all' ? 'active' : ''}" onclick="filterChallenges('all')">All</div>
-        <div class="bt ${state.currentFilter === 'low' ? 'active' : ''}" onclick="filterChallenges('low')">Low</div>
-        <div class="bt ${state.currentFilter === 'medium' ? 'active' : ''}" onclick="filterChallenges('medium')">Medium</div>
-        <div class="bt ${state.currentFilter === 'hard' ? 'active' : ''}" onclick="filterChallenges('hard')">Hard</div>
-      </div>
-
-      <div class="card-container" id="challengesContainer">
-        <!-- Challenges will be ed here by filterChallenges() -->
-      </div>
-    </div>
-  `;
-  
-  const container = challengesPage.querySelector('#challengesContainer');
-  
-  // Filter challenges based on current filter
-  const filteredChallenges = state.currentFilter === 'all' 
-    ? state.challenges 
-    : state.challenges.filter(challenge => challenge.difficulty_level === state.currentFilter);
-  
-  //  challenges
-  filteredChallenges.forEach(challenge => {
-    const card = document.createElement('div');
-    card.className = 'card-c';
-    
-    const difficultyColorClass = getDifficultyColor(challenge.difficulty_level);
-    
-    card.innerHTML = `
-      <div class="flex justify-between items-start mb-2">
-        <h3 class="card-title">${challenge.problem_header}</h3>
-        <span class="difficulty ${difficultyColorClass}">${challenge.difficulty_level}</span>
-      </div>
-      
-      <div class="flex justify-between items-center mt-4">
-        <div class="flex items-center text-gray-400">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-1">
-            <circle cx="12" cy="12" r="10"></circle>
-            <polyline points="12 6 12 12 16 14"></polyline>
-          </svg>
-          <span>${challenge.timeLimit} min</span>
-        </div>
-        <button class="btn btn-primary" onclick="navigateTo('challenge', {id: '${challenge._id}'})">Solve</button>
-      </div>
-    `;
-    
-    container.appendChild(card);
-  });
-  
-  return challengesPage;
-}
-
-
 function ChallengePage() {
   if (!state.currentChallenge) {
     navigateTo('challenges');
@@ -686,110 +645,70 @@ function ChallengePage() {
   return challengePage;
 }
 
-function LeaderboardPage() {
-  const leaderboardPage = document.createElement('div');
-  leaderboardPage.className = 'container py-8 fade-in';
+
+function ChallengesPage() {
+  const challengesPage = document.createElement('div');
+  challengesPage.className = 'container py-8 fade-in';
   
-  leaderboardPage.innerHTML = `
+  challengesPage.innerHTML = `
     <div class="text-center mb-12">
-      <h1 class="text-3xl font-bold mb-2">Global Leaderboard</h1>
-      <p class="text-gray-400">Top performers across all challenges</p>
+      <h1 class="text-3xl font-bold mb-2">Python Challenges</h1>
+      <p class="text-gray-400">Select a challenge to test your skills</p>
     </div>
-    
+
     <div class="max-w-4xl mx-auto">
-      <div class="card-l">
-        <div class="overflow-x-auto">
-          <table class="leaderboard-table">
-            <thead>
-              <tr>
-                <th>Username</th>
-                <th>Challenge</th>
-                <th>Time</th>
-                <th>Points</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${state.leaderboard.map((entry, index) => `
-                <tr>
-                  <td>${entry.author.username}</td>
-                  <td>
-                    <a href="#" onclick="showChallengeLeaderboard('${getChallengeIdByName(entry.problem._id)}'); return false;" class="text-blue-500 hover:underline">
-                      ${entry.problem.problem_header}
-                    </a>
-                  </td>
-                  <td>${entry.time}</td>
-                  <td>${entry.points}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
+      <div class="bt-container">
+        <div class="bt ${state.currentFilter === 'all' ? 'active' : ''}" onclick="filterChallenges('all')">All</div>
+        <div class="bt ${state.currentFilter === 'low' ? 'active' : ''}" onclick="filterChallenges('low')">Low</div>
+        <div class="bt ${state.currentFilter === 'medium' ? 'active' : ''}" onclick="filterChallenges('medium')">Medium</div>
+        <div class="bt ${state.currentFilter === 'hard' ? 'active' : ''}" onclick="filterChallenges('hard')">Hard</div>
+      </div>
+
+      <div class="card-container" id="challengesContainer">
+        <!-- Challenges will be ed here by filterChallenges() -->
       </div>
     </div>
   `;
   
-  return leaderboardPage;
-}
-
-function ChallengeLeaderboardPage() {
-  const leaderboardPage = document.createElement('div');
-  leaderboardPage.className = 'container py-8 fade-in';
+  const container = challengesPage.querySelector('#challengesContainer');
   
-  if (!state.currentChallenge) {
-    leaderboardPage.innerHTML = `
-      <div class="text-center">
-        <h1 class="text-3xl font-bold mb-4">Challenge Not Found</h1>
-        <button class="btn btn-primary" onclick="navigateTo('leaderboard')">Back to Leaderboard</button>
+  // Filter challenges based on current filter
+  const filteredChallenges = state.currentFilter === 'all' 
+    ? state.challenges 
+    : state.challenges.filter(challenge => challenge.difficulty_level === state.currentFilter);
+  
+  //  challenges
+  filteredChallenges.forEach(challenge => {
+    const card = document.createElement('div');
+    card.className = 'card-c';
+    
+    const difficultyColorClass = getDifficultyColor(challenge.difficulty_level);
+    
+    card.innerHTML = `
+      <div class="flex justify-between items-start mb-2">
+        <h3 class="card-title">${challenge.problem_header}</h3>
+        <span class="difficulty ${difficultyColorClass}">${challenge.difficulty_level}</span>
+      </div>
+      
+      <div class="flex justify-between items-center mt-4">
+        <div class="flex items-center text-gray-400">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-1">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+          <span>${challenge.timeLimit} min</span>
+        </div>
+        <button class="btn btn-primary" onclick="navigateTo('challenge', {id: '${challenge._id}'})">Solve</button>
       </div>
     `;
-    return leaderboardPage;
-  }
-  
-  const challengeId = state.currentChallenge._id;
-  const leaderboardData = state.challengeLeaderboards[challengeId] || [];
-  
-  leaderboardPage.innerHTML = `
-    <div class="flex justify-between items-center mb-8">
-      <h1 class="text-2xl font-bold">${state.currentChallenge.problem_header} Leaderboard</h1>
-      <button class="btn btn-outline" onclick="navigateTo('leaderboard')">Back to Global Leaderboard</button>
-    </div>
     
-    <div class="max-w-4xl mx-auto">
-      <div class="card-l">
-        ${leaderboardData.length > 0 ? `
-          <div class="overflow-x-auto">
-            <table class="leaderboard-table">
-              <thead>
-                <tr>
-                  <th>Rank</th>
-                  <th>Username</th>
-                  <th>Time</th>
-                  <th>Points</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${leaderboardData.map((entry, index) => `
-                  <tr>
-                    <td>${index + 1}</td>
-                    <td>${entry.author.username}</td>
-                    <td>${entry.timeToSolve}</td>
-                    <td>${entry.points}</td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          </div>
-        ` : `
-          <div class="p-8 text-center">
-            <p class="text-gray-400">No entries yet for this challenge</p>
-          </div>
-        `}
-      </div>
-    </div>
-  `;
+    container.appendChild(card);
+  });
   
-  return leaderboardPage;
+  return challengesPage;
 }
+
+
 
 function ProfilePage() {
   const profilePage = document.createElement('div');
@@ -876,7 +795,16 @@ function NotFoundPage() {
   
   return notFoundPage;
 }
-
+async function fetchFeatureFlags() {
+  try {
+    const response = await axios.get('http://localhost:3003/feature-flags');
+    console.log(response.data); // Log the feature flags to ensure they are fetched correctly
+    state.featureFlags = response.data || {}; // Store the feature flags in the state
+  } catch (error) {
+    console.error('Error fetching feature flags:', error);
+    state.featureFlags = {}; // Default to an empty object if the request fails
+  }
+}
 function TestResults() {
   const testResultsContainer = document.getElementById('testResults');
   if (!testResultsContainer || !state.testResults.length) return;
@@ -1047,26 +975,37 @@ function showTab(tabName) {
 }
 
 function initializeEditor() {
-  // Since we're creating a simplified version, we'll just use a textarea
-  // In a real app, you'd use Monaco Editor or CodeMirror
   const editorContainer = document.getElementById('editor');
-  if (!editorContainer) return;
-  
-  // Create a simple textarea-based editor
-  const textarea = document.createElement('textarea');
-  textarea.className = 'w-full h-full bg-gray-800 text-white font-mono p-4';
-  textarea.spellcheck = false;
-  textarea.value = state.currentChallenge.defaultCode;
-  editorContainer.appendChild(textarea);
-  
-  // Create a simple editor API
-  state.editor = {
-    getValue: () => textarea.value,
-    setValue: (value) => { textarea.value = value; }
-  };
-}
+  if (!editorContainer) {
+    console.error('Editor container not found!');
+    return;
+  }
 
-// Event Handlers
+  // Dispose of the existing editor instance if it exists
+  if (state.editor) {
+    state.editor.dispose();
+  }
+
+  // Clear any existing content in the editor container
+  editorContainer.innerHTML = '';
+
+  // Load Monaco Editor
+  require.config({
+    paths: { vs: 'https://unpkg.com/monaco-editor/min/vs' },
+    waitSeconds: 30, // Increase timeout to 30 seconds
+  });
+
+  require(['vs/editor/editor.main'], function () {
+    state.editor = monaco.editor.create(editorContainer, {
+      value: '# Start coding here...\n)',
+      language: 'python',
+      theme: 'vs-dark',
+      automaticLayout: true,
+    });
+
+    console.log('Editor initialized:', state.editor);
+  });
+}
 function handleLogin() {
   const username = document.getElementById('username').value;
   const password = document.getElementById('password').value;
@@ -1120,9 +1059,9 @@ document.head.appendChild(toastStyles);
 
   
   // Start the app
-  window.onload = function () {
+  window.onload = async function () {
     console.log("🚀 Window loaded. Running App...");
-  
+    
     // Retrieve the current page from localStorage
     const savedPage = localStorage.getItem('currentPage');
     if (savedPage) {
