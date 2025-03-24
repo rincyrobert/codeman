@@ -17,6 +17,18 @@ router.get('/getbyproblem/:problemId', async (req, res) => {
     }
 });
 
+router.get('/getbyproblem', async (req, res) => {
+    try {
+        const data = await LeaderBoard.find().populate('problem').populate('author').lean().exec();
+        if (!data) {
+            return res.status(500).json({ success: false, msg: 'Error Fetching Data' });
+        }
+        return res.status(200).json({ success: true, data });
+    } catch (e) {
+        return res.status(500).json({ success: false, msg: 'Error Fetching Data', error: e });
+    }
+});
+
 router.post('/getbyproblem/:problemId', async (req, res) => {
     try {
         const problemId = req.params.problemId;

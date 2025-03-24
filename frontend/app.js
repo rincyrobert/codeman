@@ -7,18 +7,7 @@ const state = {
   isLoggedIn: false,
   username: null,
   challenges: [],
-  leaderboard: [
-    { username: "pythonmaster", challenge: "Two Sum", timeToSolve: "00:45", points: 950 },
-    { username: "codegenius", challenge: "FizzBuzz", timeToSolve: "01:20", points: 920 },
-    { username: "algorithmace", challenge: "Palindrome Check", timeToSolve: "00:55", points: 900 },
-    { username: "devwizard", challenge: "Sum of Two Numbers", timeToSolve: "00:30", points: 890 },
-    { username: "bugbuster", challenge: "Find Missing Number", timeToSolve: "02:15", points: 870 },
-    { username: "bytecoder", challenge: "Valid Parentheses", timeToSolve: "01:45", points: 850 },
-    { username: "hackpro", challenge: "FizzBuzz", timeToSolve: "01:10", points: 830 },
-    { username: "syntaxslayer", challenge: "Two Sum", timeToSolve: "01:35", points: 820 },
-    { username: "logicmaster", challenge: "Palindrome Check", timeToSolve: "01:05", points: 810 },
-    { username: "datastructor", challenge: "Valid Parentheses", timeToSolve: "02:00", points: 800 }
-  ],
+  leaderboard: [],
   challengeLeaderboards: {
     "1": [
       { username: "devwizard", timeToSolve: "00:30", points: 100 },
@@ -78,6 +67,15 @@ async function getProblems() {
   });
   const data = await response.json();
   state.challenges = data.data || [];
+
+  const leader = await fetch('http://localhost:3003/leader/getbyproblem', {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+  const lData = await leader.json();
+  state.leaderboard = lData.data || [];
 }
 
 getProblems();
@@ -713,13 +711,13 @@ function LeaderboardPage() {
             <tbody>
               ${state.leaderboard.map((entry, index) => `
                 <tr>
-                  <td>${entry.username}</td>
+                  <td>${entry.author.username}</td>
                   <td>
-                    <a href="#" onclick="showChallengeLeaderboard('${getChallengeIdByName(entry.challenge)}'); return false;" class="text-blue-500 hover:underline">
-                      ${entry.challenge}
+                    <a href="#" onclick="showChallengeLeaderboard('${getChallengeIdByName(entry.problem._id)}'); return false;" class="text-blue-500 hover:underline">
+                      ${entry.problem.problem_header}
                     </a>
                   </td>
-                  <td>${entry.timeToSolve}</td>
+                  <td>${entry.time}</td>
                   <td>${entry.points}</td>
                 </tr>
               `).join('')}
@@ -747,12 +745,12 @@ function ChallengeLeaderboardPage() {
     return leaderboardPage;
   }
   
-  const challengeId = state.currentChallenge.id;
+  const challengeId = state.currentChallenge._id;
   const leaderboardData = state.challengeLeaderboards[challengeId] || [];
   
   leaderboardPage.innerHTML = `
     <div class="flex justify-between items-center mb-8">
-      <h1 class="text-2xl font-bold">${state.currentChallenge.title} Leaderboard</h1>
+      <h1 class="text-2xl font-bold">${state.currentChallenge.problem_header} Leaderboard</h1>
       <button class="btn btn-outline" onclick="navigateTo('leaderboard')">Back to Global Leaderboard</button>
     </div>
     
@@ -773,7 +771,7 @@ function ChallengeLeaderboardPage() {
                 ${leaderboardData.map((entry, index) => `
                   <tr>
                     <td>${index + 1}</td>
-                    <td>${entry.username}</td>
+                    <td>${entry.author.username}</td>
                     <td>${entry.timeToSolve}</td>
                     <td>${entry.points}</td>
                   </tr>
@@ -964,13 +962,14 @@ function formatTime(seconds) {
   return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
 }
 
-function getChallengeIdByName(name) {
-  const challenge = state.challenges.find(c => c.title === name);
-  return challenge ? challenge.id : '1';
+function getChallengeIdByName(id) {
+  const challenge = state.challenges.find(c => c._id === id);
+  console.log(challenge);
+  return challenge ? challenge._id : '1';
 }
 
 function showChallengeLeaderboard(challengeId) {
-  const challenge = state.challenges.find(c => c.id === challengeId);
+  const challenge = state.challenges.find(c => c._id === challengeId);
   if (challenge) {
     state.currentChallenge = challenge;
     navigateTo('challengeLeaderboard');
