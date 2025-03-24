@@ -5,13 +5,12 @@ module.exports = async (req, res) => {
     try {
         const { email, password } = req.body;
         if (!email || !password) {
-            return res.status(500).send({ success: false, msg: 'Email or password is required' });
+            return res.status(500).send({ success: false, msg: ' Email or password is required' });
         }
         const user = await User.findOne({ email: email });
         if (!user) {
             return res.status(200).send({ success: false, msg: 'User Not Found' });
         }
-        
         const match = user.checkPassword(req.body.password);
         if (!match) {
             return res.status(500).send({ msg: "email or password is incorrect" });

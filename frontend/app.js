@@ -131,10 +131,10 @@ function checkAuth() {
 }
 
 // Authentication
-async function login(email, password) {
-  if (email && password) {
+async function login(usernameorEmail, password) {
+  if (usernameorEmail && password) {
     const body = {
-      email,
+      usernameorEmail,
       password
     }
 
@@ -146,7 +146,7 @@ async function login(email, password) {
       body: JSON.stringify(body),
     });
     const data = await response.json();
-    if (data.success) {
+    if (data.success && data.user && data.token) {
       localStorage.setItem('codeMasterUser', JSON.stringify(data.user));
       localStorage.setItem('token', data.token);
       state.isLoggedIn = true;
@@ -174,6 +174,7 @@ async function signup(username, email, password, confirmPassword) {
   }
 
   const body = {
+    username,
     email,
     username,
     password
@@ -474,6 +475,7 @@ function LoginPage() {
     
     <div class="auth-container">
       <h2 class="auth-title">Login</h2>
+<<<<<<< HEAD
       <form id="loginForm" onsubmit="event.preventDefault(); handleLogin();">
         <div class="form-group">
           <label for="username" class="form-label">Email</label>
@@ -491,6 +493,25 @@ function LoginPage() {
           Don't have an account? <a href="#" class="text-purple-400 hover:underline" onclick="navigateTo('signup'); return false;">Sign up</a>
         </p>
       </form>
+=======
+    <form id="loginForm" onsubmit="event.preventDefault(); handleLogin();">
+    <div class="form-group">
+        <label for="email" class="form-label">Email</label>
+        <input type="email" id="email" class="form-input" placeholder="Enter your email" required>
+    </div>
+    <div class="form-group">
+        <label for="password" class="form-label">Password</label>
+        <input type="password" id="password" class="form-input" placeholder="Enter your password" required>
+    </div>
+    <div class="auth-button">
+        <button type="button" class="btn-outline" onclick="navigateTo('index')">Back</button>
+        <button type="submit" class="btn-primary">Login</button>
+    </div>
+    <p class="mt-4 text-gray-500">
+        Don't have an account? <a href="#" class="text-purple-400 hover:underline" onclick="navigateTo('signup'); return false;">Sign up</a>
+    </p>
+    </form>
+>>>>>>> 16d1362de22c76e034b1115a2167dce3b35aacab
     </div>
   `;
   
@@ -690,9 +711,33 @@ function ChallengePage() {
 }
 
 
+<<<<<<< HEAD
 function ChallengesPage() {
   const challengesPage = document.createElement('div');
   challengesPage.className = 'container py-8 fade-in';
+=======
+  async function fetchLeaderboardData() {
+    try {
+      const response = await fetch('http://localhost:3003/leaderboard/getbyproblem/:problemId');
+      const data = await response.json();
+      if (data.success) {
+        state.leaderboard = data.data; // Assuming the response has 'data' field containing the leaderboard
+        App();  // Re-render the app to update the leaderboard
+      } else {
+        console.error('Error fetching leaderboard data');
+      }
+    } catch (error) {
+      console.error('Error fetching leaderboard data:', error);
+    }
+  }
+  
+  function LeaderboardPage() {
+    const leaderboardPage = document.createElement('div');
+    leaderboardPage.className = 'container py-8 fade-in';
+  
+    // Fetch leaderboard data when the page loads
+    fetchLeaderboardData();
+>>>>>>> 16d1362de22c76e034b1115a2167dce3b35aacab
   
   challengesPage.innerHTML = `
     <div class="text-center mb-12">
@@ -1050,10 +1095,20 @@ function initializeEditor() {
   });
 }
 function handleLogin() {
-  const username = document.getElementById('username').value;
-  const password = document.getElementById('password').value;
-  login(username, password);
+    const email = document.getElementById('email');
+    const password = document.getElementById('password');
+
+    if (!email || !password) {
+        console.error('Email or Password field not found!');
+        return;
+    }
+    const emailValue = email.value;
+    const passwordValue = password.value;
+
+    // Proceed with your login logic
+    login(emailValue, passwordValue);
 }
+
 
 function handleSignup() {
   const username = document.getElementById('signupUsername').value;
