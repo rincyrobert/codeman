@@ -17,6 +17,8 @@ app.post('/signup', register);
 
 app.use('/problems', probelmController);
 app.use('/leader', LeaderBoardController);
+app.use('/submit-time', submissionController); // Add the submission route
+app.use('/profile', profileController); // Add the profile route
 
 app.listen(3003, async function () {
     await connection();

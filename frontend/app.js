@@ -226,16 +226,64 @@ function showToast(message, type = 'info') {
 // Challenge Functions
 function startTimer() {
   if (state.timerInterval) clearInterval(state.timerInterval);
-  
+
   state.timerInterval = setInterval(() => {
     if (state.timeLeft <= 0) {
       clearInterval(state.timerInterval);
       showToast("Time's up! Your solution was not submitted.", 'error');
+
+      // Submit the time to the database when the timer stops
+      submitTimeToDatabase(state.currentChallenge._id, state.username, state.currentChallenge.timeLimit * 60);
       return;
     }
     state.timeLeft--;
     updateTimer();
   }, 1000);
+}
+let isSubmitting = false;
+async function submitTimeToDatabase(challengeId, username, timeTaken) {
+  if (!username) {
+    showToast('You must be logged in to submit your time.', 'error');
+    return;
+  }
+  try {
+    const body = {
+      challengeId,
+      username,
+      timeTaken: timeTaken - state.timeLeft, // Calculate time taken
+    };
+
+    const response = await fetch('http://localhost:3003/submit-time', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('token')}`, // Include token if required
+      },
+      body: JSON.stringify(body),
+    });
+
+    const data = await response.json();
+    if (data.success) {
+      showToast('Time submitted successfully!', 'success');
+        // Update recent submissions
+        state.userProgress.recentSubmissions.unshift({
+          challenge: state.currentChallenge.problem_header,
+          date: new Date().toISOString().split('T')[0], // Format as YYYY-MM-DD
+          result: 'Success',
+          time: formatTime(timeTaken - state.timeLeft),
+        });
+        state.userProgress.recentSubmissions = state.userProgress.recentSubmissions.slice(0, 5);
+      
+    } else {
+      showToast('Failed to submit time.', 'error');
+    }
+  } catch (error) {
+    console.error('Error submitting time:', error);
+    showToast('An error occurred while submitting time.', 'error');
+  }
+  finally {
+    isSubmitting = false; // Reset the flag
+  }
 }
 
 function updateTimer() {
@@ -708,9 +756,8 @@ function ChallengesPage() {
   return challengesPage;
 }
 
-
-
 function ProfilePage() {
+  fetchUserProfile();
   const profilePage = document.createElement('div');
   profilePage.className = 'container py-8 fade-in';
   
@@ -1071,5 +1118,3 @@ document.head.appendChild(toastStyles);
     // Start the app
     App();
   };
-  
-  
