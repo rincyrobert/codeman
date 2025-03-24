@@ -7,7 +7,7 @@ const LeaderBoard = require('../models/leaderboard.model');
 router.get('/getbyproblem/:problemId', async (req, res) => {
     try {
         const problemId = req.params.problemId;
-        const data = await LeaderBoard.findOne({ problem: problemId }).lean().exec();
+        const data = await LeaderBoard.findOne({ problem: problemId }).populate('problem').populate('author').lean().exec();
         if (!data) {
             return res.status(500).json({ success: false, msg: 'Error Fetching Data' });
         }

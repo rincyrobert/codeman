@@ -6,113 +6,7 @@ const state = {
   currentPage: 'index',
   isLoggedIn: false,
   username: null,
-  challenges: [
-    {
-      id: "1",
-      title: "Sum of Two Numbers",
-      difficulty: "easy",
-      description: "Write a function that takes two numbers as parameters and returns their sum.",
-      timeLimit: 5,
-      defaultCode: "def sum_two_numbers(a, b):\n    # Your code here\n    pass",
-      testCases: [
-        { input: "1, 2", expectedOutput: "3" },
-        { input: "5, 7", expectedOutput: "12" },
-        { input: "-3, 8", expectedOutput: "5" }
-      ]
-    },
-    {
-      id: "2",
-      title: "Palindrome Check",
-      difficulty: "easy",
-      description: "Write a function that checks if a given string is a palindrome (reads the same forwards and backwards).",
-      timeLimit: 10,
-      defaultCode: "def is_palindrome(text):\n    # Your code here\n    pass",
-      testCases: [
-        { input: "'radar'", expectedOutput: "True" },
-        { input: "'hello'", expectedOutput: "False" },
-        { input: "'A man a plan a canal Panama'", expectedOutput: "True" }
-      ]
-    },
-    {
-      id: "3",
-      title: "FizzBuzz",
-      difficulty: "easy",
-      description: "Write a function that returns 'Fizz' for numbers divisible by 3, 'Buzz' for numbers divisible by 5, 'FizzBuzz' for numbers divisible by both, and the number itself for other cases.",
-      timeLimit: 15,
-      defaultCode: "def fizzbuzz(n):\n    # Your code here\n    pass",
-      testCases: [
-        { input: "3", expectedOutput: "'Fizz'" },
-        { input: "5", expectedOutput: "'Buzz'" },
-        { input: "15", expectedOutput: "'FizzBuzz'" },
-        { input: "7", expectedOutput: "7" }
-      ]
-    },
-    {
-      id: "4",
-      title: "Find Missing Number",
-      difficulty: "medium",
-      description: "Given an array containing n distinct numbers taken from 0, 1, 2, ..., n, find the one that is missing from the array.",
-      timeLimit: 15,
-      defaultCode: "def find_missing_number(nums):\n    # Your code here\n    pass",
-      testCases: [
-        { input: "[3, 0, 1]", expectedOutput: "2" },
-        { input: "[9, 6, 4, 2, 3, 5, 7, 0, 1]", expectedOutput: "8" },
-        { input: "[0]", expectedOutput: "1" }
-      ]
-    },
-    {
-      id: "5",
-      title: "Two Sum",
-      difficulty: "medium",
-      description: "Given an array of integers and a target sum, return the indices of the two numbers such that they add up to the target.",
-      timeLimit: 20,
-      defaultCode: "def two_sum(nums, target):\n    # Your code here\n    pass",
-      testCases: [
-        { input: "[2, 7, 11, 15], 9", expectedOutput: "[0, 1]" },
-        { input: "[3, 2, 4], 6", expectedOutput: "[1, 2]" },
-        { input: "[3, 3], 6", expectedOutput: "[0, 1]" }
-      ]
-    },
-    {
-      id: "6",
-      title: "Longest Substring Without Repeating Characters",
-      difficulty: "hard",
-      description: "Given a string, find the length of the longest substring without repeating characters.",
-      timeLimit: 30,
-      defaultCode: "def length_of_longest_substring(s):\n    # Your code here\n    pass",
-      testCases: [
-        { input: "'abcabcbb'", expectedOutput: "3" },
-        { input: "'bbbbb'", expectedOutput: "1" },
-        { input: "'pwwkew'", expectedOutput: "3" }
-      ]
-    },
-    {
-      id: "7",
-      title: "Valid Parentheses",
-      difficulty: "medium",
-      description: "Given a string containing just the characters '(', ')', '{', '}', '[' and ']', determine if the input string is valid.",
-      timeLimit: 20,
-      defaultCode: "def is_valid(s):\n    # Your code here\n    pass",
-      testCases: [
-        { input: "'()[]{}'" , expectedOutput: "True" },
-        { input: "'([)]'" , expectedOutput: "False" },
-        { input: "'{[]}'" , expectedOutput: "True" }
-      ]
-    },
-    {
-      id: "8",
-      title: "Merge Intervals",
-      difficulty: "hard",
-      description: "Given a collection of intervals, merge all overlapping intervals.",
-      timeLimit: 30,
-      defaultCode: "def merge(intervals):\n    # Your code here\n    pass",
-      testCases: [
-        { input: "[[1,3],[2,6],[8,10],[15,18]]", expectedOutput: "[[1,6],[8,10],[15,18]]" },
-        { input: "[[1,4],[4,5]]", expectedOutput: "[[1,5]]" },
-        { input: "[[1,4],[0,4]]", expectedOutput: "[[0,4]]" }
-      ]
-    }
-  ],
+  challenges: [],
   leaderboard: [
     { username: "pythonmaster", challenge: "Two Sum", timeToSolve: "00:45", points: 950 },
     { username: "codegenius", challenge: "FizzBuzz", timeToSolve: "01:20", points: 920 },
@@ -175,12 +69,25 @@ const state = {
   editor: null
 };
 
+async function getProblems() {
+  const response = await fetch('http://localhost:3003/problems/get/all', {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+  const data = await response.json();
+  state.challenges = data.data || [];
+}
+
+getProblems();
+
 function navigateTo(page, params = {}) {
     state.currentPage = page;
     localStorage.setItem('currentPage', page); // Store the current page in localStorage
   
     if (page === 'challenge' && params.id) {
-      const challenge = state.challenges.find(c => c.id === params.id);
+      const challenge = state.challenges.find(c => c._id === params.id);
       if (challenge) {
         state.currentChallenge = challenge;
         state.timeLeft = challenge.timeLimit * 60;
@@ -193,7 +100,6 @@ function navigateTo(page, params = {}) {
     }
   
     App();
-  
     // Scroll to top
     window.scrollTo(0, 0);
   }
@@ -203,7 +109,7 @@ function checkAuth() {
   const user = JSON.parse(localStorage.getItem('codeMasterUser'));
   if (user) {
     state.isLoggedIn = true;
-    state.username = user.email;
+    state.username = user.username;
   } else {
     state.isLoggedIn = false;
     state.username = null;
@@ -230,7 +136,7 @@ async function login(email, password) {
       localStorage.setItem('codeMasterUser', JSON.stringify(data.user));
       localStorage.setItem('token', data.token);
       state.isLoggedIn = true;
-      state.username = data.user.email;
+      state.username = data.user.username;
       showToast('Login successful!', 'success');
       navigateTo('home');
     } else {
@@ -255,6 +161,7 @@ async function signup(username, email, password, confirmPassword) {
 
   const body = {
     email,
+    username,
     password
   }
 
@@ -270,9 +177,11 @@ async function signup(username, email, password, confirmPassword) {
     localStorage.setItem('codeMasterUser', JSON.stringify(data.user));
     localStorage.setItem('token', data.token);
     state.isLoggedIn = true;
-    state.username = data.user.email;
+    state.username = data.user.username;
     showToast('Account created successfully!', 'success');
     navigateTo('home');
+  } else {
+    showToast(data.msg, 'error');
   }
 }
 
@@ -410,6 +319,7 @@ function App() {
       app.appendChild(HomePage());
       break;
     case 'challenges':
+      getProblems();
       app.appendChild(ChallengesPage());
       break;
     case 'challenge':
@@ -502,8 +412,8 @@ function LoginPage() {
       <h2 class="auth-title">Login</h2>
       <form id="loginForm" onsubmit="event.preventDefault(); handleLogin();">
         <div class="form-group">
-          <label for="username" class="form-label">Username</label>
-          <input type="text" id="username" class="form-input" placeholder="Enter your username" required>
+          <label for="username" class="form-label">Email</label>
+          <input type="text" id="username" class="form-input" placeholder="Enter your email" required>
         </div>
         <div class="form-group">
           <label for="password" class="form-label">Password</label>
@@ -607,7 +517,7 @@ function ChallengesPage() {
     <div class="max-w-4xl mx-auto">
       <div class="bt-container">
         <div class="bt ${state.currentFilter === 'all' ? 'active' : ''}" onclick="filterChallenges('all')">All</div>
-        <div class="bt ${state.currentFilter === 'easy' ? 'active' : ''}" onclick="filterChallenges('easy')">Easy</div>
+        <div class="bt ${state.currentFilter === 'low' ? 'active' : ''}" onclick="filterChallenges('low')">Low</div>
         <div class="bt ${state.currentFilter === 'medium' ? 'active' : ''}" onclick="filterChallenges('medium')">Medium</div>
         <div class="bt ${state.currentFilter === 'hard' ? 'active' : ''}" onclick="filterChallenges('hard')">Hard</div>
       </div>
@@ -623,19 +533,19 @@ function ChallengesPage() {
   // Filter challenges based on current filter
   const filteredChallenges = state.currentFilter === 'all' 
     ? state.challenges 
-    : state.challenges.filter(challenge => challenge.difficulty === state.currentFilter);
+    : state.challenges.filter(challenge => challenge.difficulty_level === state.currentFilter);
   
   //  challenges
   filteredChallenges.forEach(challenge => {
     const card = document.createElement('div');
     card.className = 'card-c';
     
-    const difficultyColorClass = getDifficultyColor(challenge.difficulty);
+    const difficultyColorClass = getDifficultyColor(challenge.difficulty_level);
     
     card.innerHTML = `
       <div class="flex justify-between items-start mb-2">
-        <h3 class="card-title">${challenge.title}</h3>
-        <span class="difficulty ${difficultyColorClass}">${challenge.difficulty}</span>
+        <h3 class="card-title">${challenge.problem_header}</h3>
+        <span class="difficulty ${difficultyColorClass}">${challenge.difficulty_level}</span>
       </div>
       
       <div class="flex justify-between items-center mt-4">
@@ -646,7 +556,7 @@ function ChallengesPage() {
           </svg>
           <span>${challenge.timeLimit} min</span>
         </div>
-        <button class="btn btn-primary" onclick="navigateTo('challenge', {id: '${challenge.id}'})">Solve</button>
+        <button class="btn btn-primary" onclick="navigateTo('challenge', {id: '${challenge._id}'})">Solve</button>
       </div>
     `;
     
@@ -667,14 +577,14 @@ function ChallengePage() {
   challengePage.className = 'container py-8 fade-in';
   
   const challenge = state.currentChallenge;
-  const difficultyColorClass = getDifficultyColor(challenge.difficulty);
+  const difficultyColorClass = getDifficultyColor(challenge.difficulty_level);
   
   challengePage.innerHTML = `
     <div class="flex flex-col md:flex-row justify-between items-start mb-6">
       <div>
         <div class="flex items-center gap-3 mb-2">
-          <h1 class="text-2xl font-bold">${challenge.title}</h1>
-          <span class="difficulty ${difficultyColorClass}">${challenge.difficulty}</span>
+          <h1 class="text-2xl font-bold">${challenge.problem_header}</h1>
+          <span class="difficulty ${difficultyColorClass}">${challenge.difficulty_level}</span>
         </div>
        
       </div>
@@ -719,7 +629,7 @@ function ChallengePage() {
           <div class="p-4">
             <div class="mb-6">
               <h3 class="text-lg font-medium mb-2">Problem Description</h3>
-              <p class="text-gray-400">${challenge.description}</p>
+              <p class="text-gray-400">${challenge.problem_description}</p>
             </div>
             
             <div class="mb-6">
@@ -730,7 +640,7 @@ function ChallengePage() {
             <div class="mb-6">
               <h3 class="text-lg font-medium mb-2">Test Cases</h3>
               <div class="space-y-4">
-                ${challenge.testCases.map((testCase, index) => `
+                ${challenge.test_cases.map((testCase, index) => `
                   <div class="bg-gray-700 p-4 rounded-md">
                     <div class="mb-2">
                       <span class="text-gray-400">Input: </span>
@@ -1037,7 +947,7 @@ function TestResults() {
 // Helper Functions
 function getDifficultyColor(difficulty) {
   switch (difficulty) {
-    case 'easy':
+    case 'low':
       return 'difficulty-easy';
     case 'medium':
       return 'difficulty-medium';
@@ -1093,14 +1003,14 @@ function filterChallenges(filter) {
   
   const filteredChallenges = state.currentFilter === 'all' 
     ? state.challenges 
-    : state.challenges.filter(challenge => challenge.difficulty === state.currentFilter);
+    : state.challenges.filter(challenge => challenge.difficulty_level === state.currentFilter);
   
   container.innerHTML = filteredChallenges.map(challenge => `
     <div class="card-c" onclick="navigateTo('challenge', { id: '${challenge.id}' })">
       <div class="flex justify-between items-start mb-2">
-        <h3 class="card-title">${challenge.title}</h3>
-        <div class="difficulty-badge difficulty-${challenge.difficulty.toLowerCase()}">
-          ${challenge.difficulty.charAt(0).toUpperCase() + challenge.difficulty.slice(1)}
+        <h3 class="card-title">${challenge.problem_header}</h3>
+        <div class="difficulty-badge difficulty-${challenge.difficulty_level.toLowerCase()}">
+          ${challenge.difficulty_level.charAt(0).toUpperCase() + challenge.difficulty_level.slice(1)}
         </div>
       </div>
       <div class="flex justify-between items-center mt-4">

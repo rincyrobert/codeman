@@ -7,11 +7,11 @@ const tokenize = (user) => {
 
 const register = async (req, res) => {
     try {
-        const { email, password } = req.body;
-        if (!email || !password) {
+        const { username, email, password } = req.body;
+        if (!email || !password || !username) {
             return res.status(500).send({ success: false, msg: 'Email or password is required' });
         }
-        let user = await User.findOne({ email: email });
+        let user = await User.findOne({ $or: [{ email: email }, { username: username }] });
         if (user) {
             return res.status(200).send({ success: false, msg: 'User already exists' });
         }

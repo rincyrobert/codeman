@@ -23,6 +23,12 @@ const problemSchema = new Schema({
         ref: 'user',
         required: false,
     },
+    defaultCode: {
+        type: String,
+    },
+    timeLimit: {
+        type: Number,
+    }
 });
 
 module.exports = mongoose.model('problem', problemSchema);
