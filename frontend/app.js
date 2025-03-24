@@ -231,10 +231,6 @@ function startTimer() {
     if (state.timeLeft <= 0) {
       clearInterval(state.timerInterval);
       showToast("Time's up! Your solution was not submitted.", 'error');
-
-      // Submit the time to the database when the timer stops
-      submitTimeToDatabase(state.currentChallenge._id, state.username, state.currentChallenge.timeLimit * 60);
-      return;
     }
     state.timeLeft--;
     updateTimer();
