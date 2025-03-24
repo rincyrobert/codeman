@@ -6,7 +6,8 @@ const probelmController = require('./controllers/problem.controller');
 const LeaderBoardController = require('./controllers/leaderboard.controller');
 const { register } = require('./controllers/signup.controller');
 const login = require('./controllers/login.controller');
-
+const submissionController = require('./controllers/submission.controller'); // Import the submission controller
+const profileController = require('./controllers/profile.controller'); // Import the profile controller
 app.use(express.json());
 app.use(cors());
 
@@ -15,6 +16,8 @@ app.post('/signup', register);
 
 app.use('/problems', probelmController);
 app.use('/leader', LeaderBoardController);
+app.use('/submit-time', submissionController); // Add the submission route
+app.use('/profile', profileController); // Add the profile route
 
 app.listen(3003, async function () {
     await connection();
