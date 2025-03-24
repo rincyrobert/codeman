@@ -7,14 +7,18 @@ const tokenize = (user) => {
 
 const register = async (req, res) => {
     try {
-        const { email, password } = req.body;
-        if (!email || !password) {
-            return res.status(500).send({ success: false, msg: 'Email or password is required' });
+        const { username, email, password } = req.body;
+        if (!username||!email || !password) {
+            return res.status(500).send({ success: false, msg: 'username or Email or password is required' });
         }
         let user = await User.findOne({ email: email });
         if (user) {
             return res.status(200).send({ success: false, msg: 'User already exists' });
         }
+        /*let user = await User.findOne({ email: email });
+        if (user) {
+            return res.status(200).send({ success: false, msg: 'User already exists' });
+        }*/
         user = await User.create(req.body);
         const token = tokenize(user);
         return res.status(200).send({ success: true, token, user });
